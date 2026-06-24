@@ -46,6 +46,14 @@
     .tag { font-size: .7rem; padding: 2px 8px; border-radius: 99px; background: rgba(100,255,218,.12); color: var(--accent); white-space: nowrap; }
     .tag.bad { background: rgba(255,107,107,.15); color: var(--danger); }
     .empty { color: var(--muted); font-family: var(--mono); font-size: .85rem; padding: 12px 0; }
+    .about p { color: var(--muted); font-size: .95rem; margin-bottom: 18px; max-width: 760px; }
+    .flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .step { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .step .n { font-family: var(--mono); font-size: .72rem; color: var(--accent); }
+    .step h3 { font-size: .95rem; margin: 6px 0 6px; }
+    .step p { font-size: .82rem; color: var(--muted); margin: 0; }
+    .stack { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; font-family: var(--mono); font-size: .78rem; }
+    .stack span { background: rgba(100,255,218,.1); color: var(--accent); border: 1px solid var(--border); padding: 4px 12px; border-radius: 99px; }
   </style>
 </head>
 <body>
@@ -56,6 +64,42 @@
       <p class="sub">A virtual IoT sensor streams readings over WebSocket; an Isolation Forest model flags anomalies in real time.</p>
       <div class="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></div>
     </header>
+
+    <div class="panel about">
+      <h2>About this project</h2>
+      <p>
+        Smart Environmental Monitor is an end-to-end AI + IoT demo. A virtual
+        sensor continuously reports temperature, humidity, and air quality; the
+        data is streamed live to an AI model that learns what "normal" looks like
+        and flags abnormal readings the instant they happen — the same pipeline
+        behind predictive maintenance, smart agriculture, and air-quality systems.
+      </p>
+      <div class="flow">
+        <div class="step">
+          <div class="n">01 · IoT</div>
+          <h3>Virtual Sensor</h3>
+          <p>Generates realistic readings every 2 seconds, with occasional spikes to simulate real events.</p>
+        </div>
+        <div class="step">
+          <div class="n">02 · Backend</div>
+          <h3>FastAPI + WebSocket</h3>
+          <p>Receives each reading and streams it to the dashboard over a live connection — no page refresh.</p>
+        </div>
+        <div class="step">
+          <div class="n">03 · AI</div>
+          <h3>Isolation Forest</h3>
+          <p>An ML model trained on normal data scores every reading and detects anomalies with a confidence level.</p>
+        </div>
+        <div class="step">
+          <div class="n">04 · UI</div>
+          <h3>Live Dashboard</h3>
+          <p>Shows the values, a real-time chart, and an event feed — anomalies are highlighted in red.</p>
+        </div>
+      </div>
+      <div class="stack">
+        <span>Python</span><span>FastAPI</span><span>scikit-learn</span><span>WebSockets</span><span>Vanilla JS</span>
+      </div>
+    </div>
 
     <div class="cards">
       <div class="card accent" id="card-temp">
