@@ -4,155 +4,222 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Environmental Monitor</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="icon" href="data:," />
   <style>
     :root {
       --bg: #0a0e1a; --surface: #161b2c; --border: #1f2940;
-      --text: #e6edf6; --muted: #8b95a8; --accent: #64ffda; --danger: #ff6b6b;
-      --font: 'Inter', system-ui, sans-serif; --mono: 'JetBrains Mono', monospace;
+      --text: #e6edf6; --muted: #8b95a8; --accent: #64ffda;
+      --violet: #7c5cff; --amber: #ffb86b; --danger: #ff6b6b;
+      --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --mono: 'Consolas', 'JetBrains Mono', monospace;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: var(--font); background: var(--bg); color: var(--text); }
     .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
-    header { margin-bottom: 36px; }
+    header { margin-bottom: 32px; }
     .eyebrow { font-family: var(--mono); color: var(--accent); font-size: .85rem; }
     h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -.02em; margin: 6px 0; }
-    .sub { color: var(--muted); font-size: 1rem; }
-    .status { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: .8rem; color: var(--muted); margin-top: 12px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+    .sub { color: var(--muted); font-size: 1rem; max-width: 640px; }
+    .status { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: .8rem; color: var(--muted); margin-top: 14px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); transition: background .3s; }
     .dot.live { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
     .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; transition: border-color .3s; }
     .card.alert { border-color: var(--danger); }
-    .card .label { font-family: var(--mono); font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .card .label { font-family: var(--mono); font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
     .card .value { font-size: 2.2rem; font-weight: 700; margin-top: 8px; }
     .card .unit { font-size: 1rem; color: var(--muted); font-weight: 400; }
     .card.accent .value { color: var(--accent); }
     .card.danger .value { color: var(--danger); }
     .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-    .panel h2 { font-size: 1.05rem; margin-bottom: 16px; }
-    .feed { max-height: 280px; overflow-y: auto; font-family: var(--mono); font-size: .82rem; }
-    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--muted); }
+    .panel h2 { font-size: 1.05rem; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+    .legend { display: flex; gap: 18px; font-family: var(--mono); font-size: .75rem; color: var(--muted); font-weight: 400; }
+    .legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+    .lg-temp::before { background: var(--accent); }
+    .lg-hum::before { background: var(--violet); }
+    .lg-aqi::before { background: var(--amber); }
+    #chart { width: 100%; height: 240px; display: block; }
+    .feed { max-height: 300px; overflow-y: auto; font-family: var(--mono); font-size: .82rem; }
+    .row { display: grid; grid-template-columns: 90px 1fr auto; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--muted); }
+    .row:last-child { border-bottom: none; }
     .row.anom { color: var(--danger); }
-    .tag { font-size: .7rem; padding: 2px 8px; border-radius: 99px; background: rgba(255,107,107,.15); color: var(--danger); }
-    .tag.ok { background: rgba(100,255,218,.12); color: var(--accent); }
+    .tag { font-size: .7rem; padding: 2px 8px; border-radius: 99px; background: rgba(100,255,218,.12); color: var(--accent); white-space: nowrap; }
+    .tag.bad { background: rgba(255,107,107,.15); color: var(--danger); }
+    .empty { color: var(--muted); font-family: var(--mono); font-size: .85rem; padding: 12px 0; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
-    const fmtTime = (t) => new Date(t * 1000).toLocaleTimeString();
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">AI + IoT · live demo</div>
+      <h1>Smart Environmental Monitor</h1>
+      <p class="sub">A virtual IoT sensor streams readings over WebSocket; an Isolation Forest model flags anomalies in real time.</p>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></div>
+    </header>
 
-    function Chart({ readings }) {
-      const ref = useRef(null);
-      const chart = useRef(null);
-      useEffect(() => {
-        chart.current = new window.Chart(ref.current, {
-          type: 'line',
-          data: { labels: [], datasets: [
-            { label: 'Temp (°C)', data: [], borderColor: '#64ffda', backgroundColor: 'transparent', tension: .35, pointRadius: 0 },
-            { label: 'Humidity (%)', data: [], borderColor: '#7c5cff', backgroundColor: 'transparent', tension: .35, pointRadius: 0 },
-            { label: 'AQI', data: [], borderColor: '#ffb86b', backgroundColor: 'transparent', tension: .35, pointRadius: 0 },
-          ]},
-          options: {
-            responsive: true, animation: false,
-            scales: { x: { ticks: { color: '#8b95a8', maxTicksLimit: 6 }, grid: { color: '#1f2940' } },
-                      y: { ticks: { color: '#8b95a8' }, grid: { color: '#1f2940' } } },
-            plugins: { legend: { labels: { color: '#e6edf6', font: { family: 'JetBrains Mono' } } } },
-          },
+    <div class="cards">
+      <div class="card accent" id="card-temp">
+        <div class="label">Temperature</div>
+        <div class="value"><span id="v-temp">—</span><span class="unit"> °C</span></div>
+      </div>
+      <div class="card accent">
+        <div class="label">Humidity</div>
+        <div class="value"><span id="v-hum">—</span><span class="unit"> %</span></div>
+      </div>
+      <div class="card accent">
+        <div class="label">Air Quality</div>
+        <div class="value"><span id="v-aqi">—</span><span class="unit"> AQI</span></div>
+      </div>
+      <div class="card" id="card-anom">
+        <div class="label">Anomalies detected</div>
+        <div class="value"><span id="v-anom">0</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Live readings
+        <span class="legend">
+          <span class="lg-temp">Temp</span>
+          <span class="lg-hum">Humidity</span>
+          <span class="lg-aqi">AQI</span>
+        </span>
+      </h2>
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Event feed</h2>
+      <div class="feed" id="feed"><div class="empty">Waiting for data…</div></div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+    var MAX = 120;
+    var readings = [];
+
+    var el = function (id) { return document.getElementById(id); };
+    var fmtTime = function (t) { return new Date(t * 1000).toLocaleTimeString(); };
+
+    function setStatus(connected) {
+      el("dot").className = "dot" + (connected ? " live" : "");
+      el("statusText").textContent = connected ? "Live — streaming" : "Disconnected — retrying…";
+    }
+
+    function render() {
+      var latest = readings[readings.length - 1];
+      var anomCount = readings.reduce(function (n, r) { return n + (r.is_anomaly ? 1 : 0); }, 0);
+
+      if (latest) {
+        el("v-temp").textContent = latest.temperature.toFixed(2);
+        el("v-hum").textContent = latest.humidity.toFixed(2);
+        el("v-aqi").textContent = latest.aqi.toFixed(2);
+        el("card-temp").className = "card accent" + (latest.is_anomaly ? " alert" : "");
+      }
+      el("v-anom").textContent = anomCount;
+      el("card-anom").className = "card" + (anomCount ? " danger" : "");
+
+      renderFeed();
+      drawChart();
+    }
+
+    function renderFeed() {
+      var feed = el("feed");
+      if (!readings.length) return;
+      var html = "";
+      for (var i = readings.length - 1; i >= 0; i--) {
+        var r = readings[i];
+        var tag = r.is_anomaly
+          ? '<span class="tag bad">anomaly ' + Math.round(r.confidence * 100) + '%</span>'
+          : '<span class="tag">normal</span>';
+        html += '<div class="row' + (r.is_anomaly ? ' anom' : '') + '">' +
+                  '<span>' + fmtTime(r.timestamp) + '</span>' +
+                  '<span>' + r.temperature.toFixed(1) + '°C · ' + r.humidity.toFixed(0) + '% · ' + r.aqi.toFixed(0) + ' AQI</span>' +
+                  tag +
+                '</div>';
+      }
+      feed.innerHTML = html;
+    }
+
+    // --- Minimal canvas line chart (no libraries) ---
+    function drawChart() {
+      var canvas = el("chart");
+      var ctx = canvas.getContext("2d");
+      var dpr = window.devicePixelRatio || 1;
+      var cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+      canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
+
+      var padL = 40, padR = 12, padT = 12, padB = 24;
+      var plotW = cssW - padL - padR, plotH = cssH - padT - padB;
+
+      if (readings.length < 2) return;
+
+      var series = [
+        { key: "temperature", color: "#64ffda" },
+        { key: "humidity", color: "#7c5cff" },
+        { key: "aqi", color: "#ffb86b" }
+      ];
+
+      // Shared y-scale across all series so the lines share one axis.
+      var lo = Infinity, hi = -Infinity;
+      readings.forEach(function (r) {
+        series.forEach(function (s) { lo = Math.min(lo, r[s.key]); hi = Math.max(hi, r[s.key]); });
+      });
+      if (lo === hi) { hi = lo + 1; }
+      var range = hi - lo, pad = range * 0.1;
+      lo -= pad; hi += pad; range = hi - lo;
+
+      var n = readings.length;
+      var x = function (i) { return padL + (plotW * i) / (n - 1); };
+      var y = function (v) { return padT + plotH - ((v - lo) / range) * plotH; };
+
+      // Grid + y labels
+      ctx.strokeStyle = "#1f2940"; ctx.fillStyle = "#5a6377";
+      ctx.font = "10px monospace"; ctx.lineWidth = 1;
+      for (var g = 0; g <= 4; g++) {
+        var gy = padT + (plotH * g) / 4;
+        ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(cssW - padR, gy); ctx.stroke();
+        var val = hi - (range * g) / 4;
+        ctx.fillText(val.toFixed(0), 6, gy + 3);
+      }
+
+      // Series lines
+      series.forEach(function (s) {
+        ctx.beginPath(); ctx.strokeStyle = s.color; ctx.lineWidth = 2;
+        readings.forEach(function (r, i) {
+          var px = x(i), py = y(r[s.key]);
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         });
-        return () => chart.current.destroy();
-      }, []);
-      useEffect(() => {
-        if (!chart.current) return;
-        const c = chart.current;
-        c.data.labels = readings.map(r => fmtTime(r.timestamp));
-        c.data.datasets[0].data = readings.map(r => r.temperature);
-        c.data.datasets[1].data = readings.map(r => r.humidity);
-        c.data.datasets[2].data = readings.map(r => r.aqi);
-        c.update('none');
-      }, [readings]);
-      return <canvas ref={ref} height="110" />;
+        ctx.stroke();
+      });
+
+      // Mark anomalies
+      readings.forEach(function (r, i) {
+        if (!r.is_anomaly) return;
+        ctx.fillStyle = "#ff6b6b";
+        ctx.beginPath(); ctx.arc(x(i), y(r.aqi), 3.5, 0, Math.PI * 2); ctx.fill();
+      });
     }
 
-    function App() {
-      const [readings, setReadings] = useState([]);
-      const [connected, setConnected] = useState(false);
-
-      useEffect(() => {
-        const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-        const ws = new WebSocket(`${proto}://${location.host}/ws`);
-        ws.onopen = () => setConnected(true);
-        ws.onclose = () => setConnected(false);
-        ws.onmessage = (e) => {
-          const msg = JSON.parse(e.data);
-          if (msg.type === 'history') setReadings(msg.data);
-          else if (msg.type === 'reading') setReadings(prev => [...prev, msg.data].slice(-120));
-        };
-        return () => ws.close();
-      }, []);
-
-      const latest = readings[readings.length - 1];
-      const anomalies = readings.filter(r => r.is_anomaly).length;
-
-      return (
-        <div className="wrap">
-          <header>
-            <div className="eyebrow">AI + IoT · live demo</div>
-            <h1>Smart Environmental Monitor</h1>
-            <p className="sub">A virtual IoT sensor streams readings over WebSocket; an Isolation Forest model flags anomalies in real time.</p>
-            <div className="status"><span className={"dot" + (connected ? " live" : "")}></span>{connected ? "Live — streaming" : "Disconnected"}</div>
-          </header>
-
-          <div className="cards">
-            <div className={"card accent" + (latest && latest.is_anomaly ? " alert" : "")}>
-              <div className="label">Temperature</div>
-              <div className="value">{latest ? latest.temperature : "—"}<span className="unit"> °C</span></div>
-            </div>
-            <div className="card accent">
-              <div className="label">Humidity</div>
-              <div className="value">{latest ? latest.humidity : "—"}<span className="unit"> %</span></div>
-            </div>
-            <div className="card accent">
-              <div className="label">Air Quality</div>
-              <div className="value">{latest ? latest.aqi : "—"}<span className="unit"> AQI</span></div>
-            </div>
-            <div className={"card" + (anomalies ? " danger" : "")}>
-              <div className="label">Anomalies detected</div>
-              <div className="value">{anomalies}</div>
-            </div>
-          </div>
-
-          <div className="panel">
-            <h2>Live readings</h2>
-            <Chart readings={readings} />
-          </div>
-
-          <div className="panel">
-            <h2>Event feed</h2>
-            <div className="feed">
-              {[...readings].reverse().map((r, i) => (
-                <div key={i} className={"row" + (r.is_anomaly ? " anom" : "")}>
-                  <span>{fmtTime(r.timestamp)}</span>
-                  <span>{r.temperature}°C · {r.humidity}% · {r.aqi} AQI</span>
-                  <span className={"tag" + (r.is_anomaly ? "" : " ok")}>
-                    {r.is_anomaly ? `anomaly ${(r.confidence * 100).toFixed(0)}%` : "normal"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
+    // --- WebSocket with auto-reconnect ---
+    function connect() {
+      var proto = location.protocol === "https:" ? "wss" : "ws";
+      var ws = new WebSocket(proto + "://" + location.host + "/ws");
+      ws.onopen = function () { setStatus(true); };
+      ws.onclose = function () { setStatus(false); setTimeout(connect, 2000); };
+      ws.onerror = function () { ws.close(); };
+      ws.onmessage = function (e) {
+        var msg = JSON.parse(e.data);
+        if (msg.type === "history") readings = msg.data.slice(-MAX);
+        else if (msg.type === "reading") { readings.push(msg.data); if (readings.length > MAX) readings.shift(); }
+        render();
+      };
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    window.addEventListener("resize", drawChart);
+    connect();
   </script>
 </body>
 </html>

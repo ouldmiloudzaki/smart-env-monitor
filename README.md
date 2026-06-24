@@ -3,8 +3,8 @@
 A real-time **AI + IoT** monitoring platform. A virtual IoT sensor streams
 environmental readings (temperature, humidity, air quality) over a WebSocket to
 a **FastAPI** backend, where an **Isolation Forest** machine-learning model
-flags anomalies as they happen. A live **React** dashboard visualizes the
-stream and highlights every detected anomaly.
+flags anomalies as they happen. A live, dependency-free dashboard visualizes
+the stream and highlights every detected anomaly.
 
 > Built to demonstrate an end-to-end pipeline: sensor → streaming → ML inference
 > → live UI — the core loop behind predictive-maintenance and smart-monitoring
@@ -18,8 +18,9 @@ stream and highlights every detected anomaly.
   operating data scores each reading in real time (`backend/detector.py`).
 - **Real-time streaming** — readings are broadcast to every connected dashboard
   over a WebSocket (`/ws`).
-- **Live dashboard** — React + Chart.js, with current-value cards, a live chart,
-  and an event feed that highlights anomalies (`frontend/index.html`).
+- **Live dashboard** — a single self-contained HTML file (vanilla JS, custom
+  canvas chart, no external libraries or build step), with current-value cards,
+  a live chart, and an event feed that highlights anomalies (`frontend/index.html`).
 - **REST API** — `GET /api/readings`, `GET /api/health`.
 
 ## Tech stack
@@ -28,7 +29,7 @@ stream and highlights every detected anomaly.
 |------------|---------------------------------------|
 | Backend    | Python, FastAPI, WebSockets           |
 | AI / ML    | scikit-learn (Isolation Forest), NumPy|
-| Frontend   | React, Chart.js                       |
+| Frontend   | Vanilla JS, HTML Canvas (zero deps)   |
 | IoT        | Simulated sensor (MQTT-ready design)  |
 
 ## Run it
