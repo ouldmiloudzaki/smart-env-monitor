@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Environmental Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0e1a; --surface: #161b2c; --border: #1f2940;
+      --text: #e6edf6; --muted: #8b95a8; --accent: #64ffda; --danger: #ff6b6b;
+      --font: 'Inter', system-ui, sans-serif; --mono: 'JetBrains Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+    header { margin-bottom: 36px; }
+    .eyebrow { font-family: var(--mono); color: var(--accent); font-size: .85rem; }
+    h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -.02em; margin: 6px 0; }
+    .sub { color: var(--muted); font-size: 1rem; }
+    .status { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: .8rem; color: var(--muted); margin-top: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+    .dot.live { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; transition: border-color .3s; }
+    .card.alert { border-color: var(--danger); }
+    .card .label { font-family: var(--mono); font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .card .value { font-size: 2.2rem; font-weight: 700; margin-top: 8px; }
+    .card .unit { font-size: 1rem; color: var(--muted); font-weight: 400; }
+    .card.accent .value { color: var(--accent); }
+    .card.danger .value { color: var(--danger); }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .panel h2 { font-size: 1.05rem; margin-bottom: 16px; }
+    .feed { max-height: 280px; overflow-y: auto; font-family: var(--mono); font-size: .82rem; }
+    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--muted); }
+    .row.anom { color: var(--danger); }
+    .tag { font-size: .7rem; padding: 2px 8px; border-radius: 99px; background: rgba(255,107,107,.15); color: var(--danger); }
+    .tag.ok { background: rgba(100,255,218,.12); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const fmtTime = (t) => new Date(t * 1000).toLocaleTimeString();
+
+    function Chart({ readings }) {
+      const ref = useRef(null);
+      const chart = useRef(null);
+      useEffect(() => {
+        chart.current = new window.Chart(ref.current, {
+          type: 'line',
+          data: { labels: [], datasets: [
+            { label: 'Temp (°C)', data: [], borderColor: '#64ffda', backgroundColor: 'transparent', tension: .35, pointRadius: 0 },
+            { label: 'Humidity (%)', data: [], borderColor: '#7c5cff', backgroundColor: 'transparent', tension: .35, pointRadius: 0 },
+            { label: 'AQI', data: [], borderColor: '#ffb86b', backgroundColor: 'transparent', tension: .35, pointRadius: 0 },
+          ]},
+          options: {
+            responsive: true, animation: false,
+            scales: { x: { ticks: { color: '#8b95a8', maxTicksLimit: 6 }, grid: { color: '#1f2940' } },
+                      y: { ticks: { color: '#8b95a8' }, grid: { color: '#1f2940' } } },
+            plugins: { legend: { labels: { color: '#e6edf6', font: { family: 'JetBrains Mono' } } } },
+          },
+        });
+        return () => chart.current.destroy();
+      }, []);
+      useEffect(() => {
+        if (!chart.current) return;
+        const c = chart.current;
+        c.data.labels = readings.map(r => fmtTime(r.timestamp));
+        c.data.datasets[0].data = readings.map(r => r.temperature);
+        c.data.datasets[1].data = readings.map(r => r.humidity);
+        c.data.datasets[2].data = readings.map(r => r.aqi);
+        c.update('none');
+      }, [readings]);
+      return <canvas ref={ref} height="110" />;
+    }
+
+    function App() {
+      const [readings, setReadings] = useState([]);
+      const [connected, setConnected] = useState(false);
+
+      useEffect(() => {
+        const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+        const ws = new WebSocket(`${proto}://${location.host}/ws`);
+        ws.onopen = () => setConnected(true);
+        ws.onclose = () => setConnected(false);
+        ws.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'history') setReadings(msg.data);
+          else if (msg.type === 'reading') setReadings(prev => [...prev, msg.data].slice(-120));
+        };
+        return () => ws.close();
+      }, []);
+
+      const latest = readings[readings.length - 1];
+      const anomalies = readings.filter(r => r.is_anomaly).length;
+
+      return (
+        <div className="wrap">
+          <header>
+            <div className="eyebrow">AI + IoT · live demo</div>
+            <h1>Smart Environmental Monitor</h1>
+            <p className="sub">A virtual IoT sensor streams readings over WebSocket; an Isolation Forest model flags anomalies in real time.</p>
+            <div className="status"><span className={"dot" + (connected ? " live" : "")}></span>{connected ? "Live — streaming" : "Disconnected"}</div>
+          </header>
+
+          <div className="cards">
+            <div className={"card accent" + (latest && latest.is_anomaly ? " alert" : "")}>
+              <div className="label">Temperature</div>
+              <div className="value">{latest ? latest.temperature : "—"}<span className="unit"> °C</span></div>
+            </div>
+            <div className="card accent">
+              <div className="label">Humidity</div>
+              <div className="value">{latest ? latest.humidity : "—"}<span className="unit"> %</span></div>
+            </div>
+            <div className="card accent">
+              <div className="label">Air Quality</div>
+              <div className="value">{latest ? latest.aqi : "—"}<span className="unit"> AQI</span></div>
+            </div>
+            <div className={"card" + (anomalies ? " danger" : "")}>
+              <div className="label">Anomalies detected</div>
+              <div className="value">{anomalies}</div>
+            </div>
+          </div>
+
+          <div className="panel">
+            <h2>Live readings</h2>
+            <Chart readings={readings} />
+          </div>
+
+          <div className="panel">
+            <h2>Event feed</h2>
+            <div className="feed">
+              {[...readings].reverse().map((r, i) => (
+                <div key={i} className={"row" + (r.is_anomaly ? " anom" : "")}>
+                  <span>{fmtTime(r.timestamp)}</span>
+                  <span>{r.temperature}°C · {r.humidity}% · {r.aqi} AQI</span>
+                  <span className={"tag" + (r.is_anomaly ? "" : " ok")}>
+                    {r.is_anomaly ? `anomaly ${(r.confidence * 100).toFixed(0)}%` : "normal"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
